@@ -3,14 +3,13 @@ Advanced Guards mod
 Based almost entirely on original Guards mod (https://forum.minetest.net/viewtopic.php?f=9&t=17483) by Kai Gerd Müller
 
 Features
-========
+--------
 - Create guards that follow you and intercept potential enemies
 - Guards are created by placing two blocks of a specific material and then punching them with finalization staff
   - Materials that can be used: steel, bronze, copper, mese, obsidian, diamond
 - They can jump and float in water
 
-Modifications added by zorman2000
-=================================
+__Modifications added by zorman2000__
 - Modified texture for finalization staff
 - Modified guards attributes to be more balanced
 - Added tin guard
@@ -25,7 +24,7 @@ Modifications added by zorman2000
 - Added creation and death effects
 
 Guard types:
-============
+------------
 - Tin guard
   - Very weak, but very fast, both walking and attacking
 - Steel guard
@@ -45,7 +44,7 @@ Guard types:
 
 
 License
-=======
+-------
 _Code:_ GNU Lesser General Public License (LGPL)
 
 _Textures/images:_
