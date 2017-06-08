@@ -1,7 +1,7 @@
 -- Minetest mod: advanced_guards
 -- Modifications by Zorman2000
 -- Heavily based on original "guards" mod by (c) Kai Gerd Müller
--- See README.txt for licensing and other information.
+-- See README.md for licensing and other information.
 local standardguardslist = {
 	["default:tinblock"] = "tin",
 	["default:mese"] = "mese",
@@ -13,6 +13,9 @@ local standardguardslist = {
 	["default:obsidian"] = "obsidian"
 }
 
+-------------------------------------------------------------------------------
+-- Utility functions
+-------------------------------------------------------------------------------
 local function split(inputstr, sep)
     if sep == nil then
             sep = "%s"
@@ -23,14 +26,6 @@ local function split(inputstr, sep)
             i = i + 1
     end
     return t
-end
-
-local function get_player_names_string(names)
-	local result = ""
-	for i = 1, #names do
-		result = result + names[i] + ","
-	end
-	return string.sub(result, 1, result:len() - 1)
 end
 
 local function add_effect(guard_type, effect_type, pos)
@@ -86,8 +81,6 @@ local function add_effect(guard_type, effect_type, pos)
 			texture = texture,
 		})
 	end
-
-	
 end
 
 local function jump_needed(size,pos)
@@ -123,18 +116,19 @@ local function animate(self, t)
 	end
 end
 
+-------------------------------------------------------------------------------
+-- Guard functionality
+-------------------------------------------------------------------------------
 local function get_nearest_enemy(self,pos,radius)
 	local min_dist = radius+1
 	local target = false
 	local exceptions = self.owner_obj:get_attribute("advanced_guards:exceptions") or ""
 	if exceptions ~= "" then
 		exceptions = exceptions:split(",")
-		--minetest.log("Got exceptions: "..dump(exceptions))
 	end
 	for _,entity in ipairs(minetest.get_objects_inside_radius(pos,25)) do
 		if entity ~= self.owner_obj then
 			luaent = entity:get_luaentity()
-			--minetest.log("Lua Entity: "..dump(luaent))
 			local enemy_found = false
 			if entity:is_player() then
 				enemy_found = true
@@ -207,39 +201,27 @@ local function register_guard(def)
 			collisionbox = {-defbox, -def.size, -defbox, defbox, def.size, defbox},
 			physical = true
 		},
-		-- ON ACTIVATE --
+		-- On punch - override to calculate when guard is killed
 		on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
-			minetest.log("HP: "..dump(self.object:get_hp()))
 			if tool_capabilities then
-				-- Calculate tool-based damage
+				-- Get tool-based damage
 				local current_damage = tool_capabilities.damage_groups.fleshy
 				-- Check if player is punching before full punch interval
 				if time_from_last_punch < tool_capabilities.full_punch_interval then
+					-- Calculate damage for current tool based on the time from last punch
 					current_damage = 
 						math.floor( 
-							(time_from_last_punch /tool_capabilities.full_punch_interval) * current_damage 
+							(time_from_last_punch / tool_capabilities.full_punch_interval) * current_damage 
 						)
 				end
-				--minetest.log("TFLP: "..time_from_last_punch..", tool_fpi: "..tool_capabilities.full_punch_interval);
-				
-				minetest.log("current_damage: "..dump(current_damage))
-				minetest.log("Calculated HP: "..dump(self.object:get_hp() - current_damage))
+				-- Remove guard if killed
 				if self.object:get_hp() - current_damage <= 0 then
 					add_effect(self.material, "death", self.object:getpos())
 					self.object:remove()
 				end
-
-				-- if time_from_last_punch >= tool_capabilities.full_punch_interval then
-
-				-- end
 			end
-			-- if self.object:get_hp() == 0 then
-			-- 	add_effect("death", self.object:getpos())
-			-- 	self.object:remove()
-			-- end
 		end,
 		on_activate = function(self, staticdata)
-			--minetest.log("Staticdata: "..dump(minetest.deserialize(staticdata)))
 			self.timer = 0
 			self.jump = 0
 			self.guard = true
@@ -257,8 +239,6 @@ local function register_guard(def)
 				30, 0)
 			self.canimation = 1
 		end,
-		-- ON PUNCH --
-		-- ON STEP --
 		on_step = function(self, dtime)
 			self.timer = self.timer + dtime
 			if self.timer >= 1 then
@@ -288,7 +268,7 @@ local function register_guard(def)
 							local target = get_nearest_enemy(self,pos,def.size*2)
 
 							if target then
-								target:punch(self.object, 1.0,  {full_punch_interval=def.full_punch_interval or 1.0,damage_groups = {fleshy=def.damage}})
+								target:punch(self.object, 1.0, {full_punch_interval=def.full_punch_interval or 1.0,damage_groups = {fleshy=def.damage}})
 							end
 
 							local target = get_nearest_enemy(self,pos,25)
@@ -340,11 +320,6 @@ local function register_guard(def)
 							self.object:setvelocity({x=0,y=0,z=0})
 							self.nextanimation = 1
 						end
-
-						if self.object:get_hp() > 0 then return end
-						minetest.log("Dead1!")
-						add_effect("death", self.object:getpos())
-						self.object:remove()
 					end
 				else
 				  	local pos = self.object:getpos()
@@ -355,59 +330,15 @@ local function register_guard(def)
 				end
 			end
 
-			if self.object:get_hp() <= 0 then
-				minetest.log("Dead!")
-			end
 			animate(self,self.nextanimation)
 		end,
 	})
 end
 
-minetest.register_craft({
-	output = "advanced_guards:finalisation_stab",
-	recipe = {
-		  {"default:obsidian_shard","default:mese_crystal","default:obsidian_shard"},
-		  {"","default:obsidian_shard",""},
-		  {"","default:stick",""}
-		}
-})
-
--- Guard horn
-minetest.register_craftitem("advanced_guards:guard_horn", {
-	description = "Guard Horn",
-	inventory_image = "war_horn.png",
-	on_use = function(itemstack, user, pointed_thing)
-		local current_order = user:get_attribute("advanced_guards:orders") or "stand"
-		if current_order == "stand" then
-			user:set_attribute("advanced_guards:orders", "regroup")
-			minetest.chat_send_player(user:get_player_name(), "Guards will now regroup with you!")
-		elseif current_order == "regroup" then
-			user:set_attribute("advanced_guards:orders", "attack")
-			minetest.chat_send_player(user:get_player_name(), "Guards will now attack targets!")
-		elseif current_order == "attack" then
-			user:set_attribute("advanced_guards:orders", "stand")
-			minetest.chat_send_player(user:get_player_name(), "Guards will now stand position!")
-		end
-	end
-})
-
--- Configuration note
-minetest.register_craftitem("advanced_guards:manifesto", {
-	description = "Guard Manifesto",
-	inventory_image = "manifesto.png",
-	on_use = function(itemstack, user, pointed_thing)
-		-- Show formspec for exceptions
-		local exceptions = user:get_attribute("advanced_guards:exceptions") or ""
-
-		local formspec = "size[7,3]"..
-			"label[0.1,0.25;Exceptions]"..
-			"field[0.5,1;6.5,2;text;Write names of players separated by commas (,);"..exceptions.."]"..
-			"button_exit[2.25,2.25;2.5,0.75;exit;Proceed]"
-
-		minetest.show_formspec(user:get_player_name(), "advanced_guards:exceptions_form", formspec)
-	end
-})
-
+-------------------------------------------------------------------------------
+-- Items
+-------------------------------------------------------------------------------
+-- Finalization staff
 minetest.register_tool("advanced_guards:finalization_staff", {
 	description = "Finalization Staff",
 	inventory_image = "finalization_staff.png",
@@ -443,11 +374,85 @@ minetest.register_tool("advanced_guards:finalization_staff", {
 	end
 })
 
+-- Guard horn
+minetest.register_craftitem("advanced_guards:guard_horn", {
+	description = "Guard Horn",
+	inventory_image = "war_horn.png",
+	on_use = function(itemstack, user, pointed_thing)
+		local current_order = user:get_attribute("advanced_guards:orders") or "stand"
+		if current_order == "stand" then
+			user:set_attribute("advanced_guards:orders", "regroup")
+			minetest.chat_send_player(user:get_player_name(), "Guards will now regroup with you!")
+		elseif current_order == "regroup" then
+			user:set_attribute("advanced_guards:orders", "attack")
+			minetest.chat_send_player(user:get_player_name(), "Guards will now attack targets!")
+		elseif current_order == "attack" then
+			user:set_attribute("advanced_guards:orders", "stand")
+			minetest.chat_send_player(user:get_player_name(), "Guards will now stand position!")
+		end
+	end
+})
+
+-- Manifesto
+minetest.register_craftitem("advanced_guards:manifesto", {
+	description = "Guard Manifesto",
+	inventory_image = "manifesto.png",
+	on_use = function(itemstack, user, pointed_thing)
+		-- Show formspec for exceptions
+		local exceptions = user:get_attribute("advanced_guards:exceptions") or ""
+
+		local formspec = "size[7,3]"..
+			"label[0.1,0.25;Exceptions]"..
+			"field[0.5,1;6.5,2;text;Write names of players separated by commas (,);"..exceptions.."]"..
+			"button_exit[2.25,2.25;2.5,0.75;exit;Proceed]"
+
+		minetest.show_formspec(user:get_player_name(), "advanced_guards:exceptions_form", formspec)
+	end
+})
+
+
+-------------------------------------------------------------------------------
+-- Crafting recipes
+-------------------------------------------------------------------------------
+-- Crafting recipe for finalization staff
+minetest.register_craft({
+	output = "advanced_guards:finalization_staff",
+	recipe = {
+		  {"default:obsidian_shard","default:mese_crystal","default:obsidian_shard"},
+		  {"","default:obsidian_shard",""},
+		  {"","default:stick",""}
+		}
+})
+
+-- Crafting recipe for manifesto
+minetest.register_craft({
+	output = "advanced_guards:manifesto",
+	type = "shapeless",
+	recipe = {
+		"default:paper", "default:coal_lump"
+	}
+})
+
+-- Crafting recipe for guard horn 
+minetest.register_craft({
+	output = "advanced_guards:guard_horn",
+	type = "shapeless",
+	recipe = {
+		"bones:bones", "bones:bones"
+	}
+})
+
+-------------------------------------------------------------------------------
+-- Formspec handler
+-------------------------------------------------------------------------------
 minetest.register_on_player_receive_fields(function(player, formname, fields)
 	if not fields.text then return end
 	player:set_attribute("advanced_guards:exceptions", fields.text)
 end)
 
+-------------------------------------------------------------------------------
+-- Registrations
+-------------------------------------------------------------------------------
 register_guard({
 	damage = 2,
 	name = "tin",
