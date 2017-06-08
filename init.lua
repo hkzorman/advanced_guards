@@ -198,7 +198,7 @@ local function register_guard(def)
 			visual = "mesh",
 			mesh = "character.b3d",
 			textures = {def.name .. ".png"},
-			collisionbox = {-defbox, -def.size, -defbox, defbox, def.size, defbox},
+			collisionbox = {-0.35, -1.0, -0.35, 0.35, 0.8, 0.35},
 			physical = true
 		},
 		-- On punch - override to calculate when guard is killed
