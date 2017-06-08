@@ -37,21 +37,21 @@ local function add_effect(guard_type, effect_type, pos)
 	local texture = "default_mineral_mese.png"
 	if effect_type == "death" then
 		if guard_type == "tin" then
-			texture = "default:tinblock"
+			texture = "default_tin_block.png"
 		elseif guard_type == "mese" then
-			texture = "default:mese"
+			texture = "default_mese_block.png"
 		elseif guard_type == "steel" then
-			texture = "default:steelblock"
+			texture = "default_steel_block.png"
 		elseif guard_type == "copper" then
-			texture = "default:copperblock"
+			texture = "default_copper_block.png"
 		elseif guard_type == "gold" then
-			texture = "default:goldblock"
+			texture = "default_gold_block.png"
 		elseif guard_type == "bronze" then
-			texture = "default:bronzeblock"
+			texture = "default_bronze_block.png"
 		elseif guard_type == "diamond" then
-			texture = "default:diamondblock"
+			texture = "default_diamond_block.png"
 		elseif guard_type == "obsidian" then
-			texture = "default:obsidian"
+			texture = "default_obsidian.png"
 		end
 		--texture = "default_item_smoke.png"
 		minetest.add_particlespawner({
@@ -59,33 +59,33 @@ local function add_effect(guard_type, effect_type, pos)
 			time = 0.5,
 			minpos = pos,
 			maxpos = vector.add(pos, 1),
-			minvel = {x = 0, y = 1, z = 0},
-			maxvel = {x = 1, y = 5, z = 1},
+			minvel = {x = 0, y = -1, z = 0},
+			maxvel = {x = 1, y = -5, z = 1},
 			minacc = vector.new(),
 			maxacc = vector.new(),
 			minexptime = 2,
 			maxexptime = 3,
 			minsize =  1,
 			maxsize = 2,
-			texture = txture,
+			texture = texture,
 		})
 	else
 		minetest.add_particlespawner({
-		amount = 24,
-		time = 0.5,
-		minpos = pos,
-		maxpos = vector.add(pos, 1),
-		minvel = {x = -5, y = -5, z = -5},
-		maxvel = {x = 5, y = 5, z = 5},
-		minacc = vector.new(),
-		maxacc = vector.new(),
-		minexptime = 1,
-		maxexptime = 2.5,
-		minsize =  1,
-		maxsize = 2,
-		texture = texture,
-	})
-		endnz
+			amount = 24,
+			time = 0.5,
+			minpos = pos,
+			maxpos = vector.add(pos, 1),
+			minvel = {x = -5, y = -5, z = -5},
+			maxvel = {x = 5, y = 5, z = 5},
+			minacc = vector.new(),
+			maxacc = vector.new(),
+			minexptime = 1,
+			maxexptime = 2.5,
+			minsize =  1,
+			maxsize = 2,
+			texture = texture,
+		})
+	end
 
 	
 end
@@ -225,7 +225,7 @@ local function register_guard(def)
 				minetest.log("current_damage: "..dump(current_damage))
 				minetest.log("Calculated HP: "..dump(self.object:get_hp() - current_damage))
 				if self.object:get_hp() - current_damage <= 0 then
-					add_effect("death", self.object:getpos())
+					add_effect(self.material, "death", self.object:getpos())
 					self.object:remove()
 				end
 
@@ -244,6 +244,7 @@ local function register_guard(def)
 			self.jump = 0
 			self.guard = true
 			self.order = ""
+			self.material = def.name
 			self.attack_anim_speed = def.attack_anim_speed
 			self.walk_anim_speed = def.walk_anim_speed
 			self.object:setacceleration({x=0,y=-50,z=0})
@@ -432,7 +433,7 @@ minetest.register_tool("advanced_guards:finalization_staff", {
 				end
 				if spawn then
 					itemstack:add_wear(65535/1000)
-					add_effect("spawn", pos)
+					add_effect(nil, "spawn", pos)
 					guard = minetest.add_entity(pos,"advanced_guards:" .. guard)
 		            guard:get_luaentity().owner_name = user:get_player_name()
 				end
