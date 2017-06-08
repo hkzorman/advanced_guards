@@ -505,6 +505,7 @@ register_guard({
 	damage = 8,
 	name = "mese",
 	max_hp = 80,
+	full_punch_interval = 0.75,
 	size = 1,
 	speed = 3
 })

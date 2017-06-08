@@ -1,1 +1,1 @@
-Adds simple NPC and Trader.
+Adds guards that follows your orders and attack your enemies! Make your own, small private army!
