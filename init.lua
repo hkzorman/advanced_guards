@@ -246,7 +246,11 @@ local function register_guard(def)
 
 				if self.owner_name then
 					self.owner_obj = minetest.get_player_by_name(self.owner_name)
-					self.order = self.owner_obj:get_attribute("advanced_guards:orders") or "stand"
+					if self.owner_obj then
+						self.order = self.owner_obj:get_attribute("advanced_guards:orders")
+					else
+						self.order = "stand"
+					end
 					local pos = self.object:getpos()
 
 					-- Stand order
